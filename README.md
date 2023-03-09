@@ -1,5 +1,7 @@
 ## Quick start
 
+### Running locally
+
 If you don't have [sbt](https://www.scala-sbt.org) installed already, you can use the provided wrapper script:
 
 ```shell
@@ -17,6 +19,16 @@ Otherwise, if sbt is already installed, you can use the standard commands:
 sbt compile # build the project
 sbt test # run the tests
 sbt run # run the application (Main)
+```
+
+### Running on Docker
+
+Generate a Docker image first, and then docker compose up:
+
+```shell
+sbt docker:clean
+sbt docker:publishLocal
+docker compose up -d
 ```
 
 ## Links:
