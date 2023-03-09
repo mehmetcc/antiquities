@@ -29,9 +29,7 @@ object Main extends ZIOAppDefault {
                        server.requestHandler(router).listen(port)
                      }
                        .flatMap(_.asRIO)
-      _ <- ZIO.log(
-             s"Go to http://localhost:${serverStart.actualPort()}/docs to open SwaggerUI."
-           )
+      _ <- ZIO.log(s"Go to http://localhost:${serverStart.actualPort()}/docs to open SwaggerUI.")
       _ <- ZIO.unit.forever
     } yield serverStart
   }

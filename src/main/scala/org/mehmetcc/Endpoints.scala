@@ -19,9 +19,7 @@ object Endpoints {
       .errorOut(jsonBody[ErrorMessage])
       .out(jsonBody[Acceleration])
   val postAccelerationServerEndpoint: ZServerEndpoint[Any, Any] =
-    postAccelerationEndpoint.serverLogicSuccess(request =>
-      ZIO.succeed(Acceleration(x = request.x, y = request.y, z = request.z))
-    )
+    postAccelerationEndpoint.serverLogicSuccess(request => ZIO.succeed(Acceleration(request.x, request.y, request.z)))
 
   val apiEndpoints: List[ZServerEndpoint[Any, Any]] = List(postAccelerationServerEndpoint)
 

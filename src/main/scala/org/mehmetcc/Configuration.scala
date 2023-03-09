@@ -7,25 +7,29 @@ import zio.{IO, ULayer, ZIO, ZLayer}
 
 final case class ApplicationConfiguration(
   httpConfiguration: HttpConfiguration,
-  securityConfiguration: SecurityConfiguration
+  databaseConfiguration: DatabaseConfiguration
 )
 
 final case class HttpConfiguration(port: Int)
 
-final case class SecurityConfiguration(secretKey: String, expiryTime: Int)
+final case class DatabaseConfiguration(
+  databaseName: String,
+  host: String,
+  port: Int,
+  username: String,
+  password: String
+)
 
 trait Configuration {
   def load: IO[ReadError[String], ApplicationConfiguration]
 }
 
 object Configuration {
-  val live: ULayer[ConfigurationLive] = ZLayer.succeed(ConfigurationLive())
+  val live: ULayer[Configuration] = ZLayer.succeed(new Configuration {
+    override def load: IO[ReadError[String], ApplicationConfiguration] = read {
+      descriptor[ApplicationConfiguration].mapKey(toKebabCase).from(TypesafeConfigSource.fromResourcePath)
+    }
+  })
 
   def load: ZIO[Configuration, ReadError[String], ApplicationConfiguration] = ZIO.serviceWithZIO[Configuration](_.load)
-}
-
-case class ConfigurationLive() extends Configuration {
-  override def load: IO[ReadError[String], ApplicationConfiguration] = read {
-    descriptor[ApplicationConfiguration].mapKey(toKebabCase).from(TypesafeConfigSource.fromResourcePath)
-  }
 }
