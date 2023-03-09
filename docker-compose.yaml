@@ -1,0 +1,11 @@
+version: "3"
+services:
+  antiquities:
+    image: antiquities:latest
+    container_name: antiquities
+    expose:
+      - HTTP_PORT
+    ports:
+      - "${HTTP_PORT}:${HTTP_PORT}"
+    environment:
+      - HTTP_PORT
