@@ -30,9 +30,10 @@ object Main extends ZIOAppDefault {
                      }
                        .flatMap(_.asRIO)
       _ <- ZIO.log(s"Go to http://localhost:${serverStart.actualPort()}/docs to open SwaggerUI.")
-      _ <- ZIO.unit.forever
+      _ <- ZIO.unit.forever // ZIO.never
     } yield serverStart
   }
 
-  override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] = program.provide(Configuration.live).exitCode
+  override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
+    program.exitCode
 }

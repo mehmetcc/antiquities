@@ -1,6 +1,8 @@
 package org.mehmetcc
 
-import org.mehmetcc.Acceleration._
+import com.mongodb.MongoCommandException
+import org.mehmetcc.PostAccelerationOnceRequest._
+import org.mehmetcc.PostAccelerationResponse._
 import sttp.model.StatusCode
 import sttp.tapir._
 import sttp.tapir.generic.auto._
@@ -8,23 +10,99 @@ import sttp.tapir.json.zio._
 import sttp.tapir.server.metrics.prometheus.PrometheusMetrics
 import sttp.tapir.swagger.bundle.SwaggerInterpreter
 import sttp.tapir.ztapir.ZServerEndpoint
-import zio.{Task, ZIO}
+import zio.Task
+import zio.json.{DeriveJsonDecoder, DeriveJsonEncoder, JsonDecoder, JsonEncoder}
+
+import scala.language.postfixOps
+
+case class PostAccelerationOnceRequest(x: Double, y: Double, z: Double)
+
+object PostAccelerationOnceRequest {
+  implicit val postAccelerationOnceRequestEncoder: JsonEncoder[PostAccelerationOnceRequest] =
+    DeriveJsonEncoder.gen[PostAccelerationOnceRequest]
+
+  implicit val postAccelerationOnceRequestEncoderDecoder: JsonDecoder[PostAccelerationOnceRequest] =
+    DeriveJsonDecoder.gen[PostAccelerationOnceRequest]
+}
+
+case class PostAccelerationManyRequest(accelerations: List[PostAccelerationOnceRequest])
+
+object PostAccelerationManyRequest {
+  implicit val postAccelerationManyRequestEncoder: JsonEncoder[PostAccelerationManyRequest] =
+    DeriveJsonEncoder.gen[PostAccelerationManyRequest]
+
+  implicit val postAccelerationManyRequestDecoder: JsonDecoder[PostAccelerationManyRequest] =
+    DeriveJsonDecoder.gen[PostAccelerationManyRequest]
+}
+
+case class PostAccelerationResponse(isSuccess: Boolean)
+
+object PostAccelerationResponse {
+  implicit val postAccelerationResponseEncoder: JsonEncoder[PostAccelerationResponse] =
+    DeriveJsonEncoder.gen[PostAccelerationResponse]
+
+  implicit val postAccelerationResponseDecoder: JsonDecoder[PostAccelerationResponse] =
+    DeriveJsonDecoder.gen[PostAccelerationResponse]
+}
+
+case class ErrorMessage(message: String)
+
+object ErrorMessage {
+  implicit val errorMessageEncoder: JsonEncoder[ErrorMessage] = DeriveJsonEncoder.gen[ErrorMessage]
+
+  implicit val errorMessafeDecoder: JsonDecoder[ErrorMessage] = DeriveJsonDecoder.gen[ErrorMessage]
+}
 
 object Endpoints {
-  val postAccelerationEndpoint: Endpoint[Unit, Acceleration, (StatusCode, ErrorMessage), Acceleration, Any] =
+  val postAccelerationOnceServerEndpoint: ZServerEndpoint[Any, Any] =
     endpoint.post
       .in("acceleration")
-      .in(jsonBody[Acceleration])
+      .in(jsonBody[PostAccelerationOnceRequest])
       .errorOut(statusCode)
       .errorOut(jsonBody[ErrorMessage])
-      .out(jsonBody[Acceleration])
-  val postAccelerationServerEndpoint: ZServerEndpoint[Any, Any] =
-    postAccelerationEndpoint.serverLogicSuccess(request => ZIO.succeed(Acceleration(request.x, request.y, request.z)))
+      .out(jsonBody[PostAccelerationResponse])
+      .serverLogic { request =>
+        Database
+          .insertOne(Acceleration(x = request.x, y = request.y, z = request.z))
+          .map(PostAccelerationResponse(_))
+          .either
+          .map(either =>
+            either.left.map {
+              case mongo: MongoCommandException => (StatusCode.Unauthorized, ErrorMessage(mongo.getMessage))
+              case other: Exception             => (StatusCode.InternalServerError, ErrorMessage(other.getMessage))
+            }
+          )
+          .provide(Configuration.live, Database.live)
+      }
 
-  val apiEndpoints: List[ZServerEndpoint[Any, Any]] = List(postAccelerationServerEndpoint)
+  val postAccelerationManyServerEndpoint: ZServerEndpoint[Any, Any] =
+    endpoint.post
+      .in("acceleration" / "batch")
+      .in(jsonBody[PostAccelerationManyRequest])
+      .errorOut(statusCode)
+      .errorOut(jsonBody[ErrorMessage])
+      .out(jsonBody[PostAccelerationResponse])
+      .serverLogic { request =>
+        Database
+          .insertMany(
+            request.accelerations.map(acc => Acceleration(acc.x, acc.y, acc.z))
+          )
+          .map(PostAccelerationResponse(_))
+          .either
+          .map(either =>
+            either.left.map {
+              case mongo: MongoCommandException => (StatusCode.Unauthorized, ErrorMessage(mongo.getMessage))
+              case other: Exception             => (StatusCode.InternalServerError, ErrorMessage(other.getMessage))
+            }
+          )
+          .provide(Configuration.live, Database.live)
+      }
+
+  val apiEndpoints: List[ZServerEndpoint[Any, Any]] =
+    List(postAccelerationOnceServerEndpoint, postAccelerationManyServerEndpoint)
 
   val docEndpoints: List[ZServerEndpoint[Any, Any]] = SwaggerInterpreter()
-    .fromServerEndpoints[Task](apiEndpoints, "antiquities", "1.0.0")
+    .fromServerEndpoints[Task](apiEndpoints, "antiquities", "0.0.1-SNAPSHOT")
 
   val prometheusMetrics: PrometheusMetrics[Task] = PrometheusMetrics.default[Task]()
   val metricsEndpoint: ZServerEndpoint[Any, Any] = prometheusMetrics.metricsEndpoint

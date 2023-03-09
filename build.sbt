@@ -1,7 +1,7 @@
 val TapirVersion      = "1.2.10"
 val ZioVersion        = "2.0.9"
 val ZioConfigVersion  = "3.0.7"
-val Mongo4CatsVersion = "0.6.7"
+val Mongo4CatsVersion = "0.6.9"
 
 lazy val rootProject = (project in file("."))
   .enablePlugins(JavaAppPackaging, DockerPlugin, AshScriptPlugin)

@@ -9,3 +9,51 @@ services:
       - "${HTTP_PORT}:${HTTP_PORT}"
     environment:
       - HTTP_PORT
+      - DATABASE_NAME
+      - DATABASE_HOST
+      - DATABASE_PORT
+      - DATABASE_ROOT_USERNAME
+      - DATABASE_ROOT_PASSWORD
+    depends_on:
+      database:
+        condition: service_healthy
+  database:
+    image: mongo:latest
+    container_name: database
+    restart: always
+    expose:
+      - DATABASE_PORT
+    ports:
+      - "${DATABASE_PORT}:${DATABASE_PORT}"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${DATABASE_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${DATABASE_ROOT_PASSWORD}
+      - MONGO_INITDB_DATABASE=${DATABASE_NAME}
+    healthcheck:
+      test:  echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - ./data:/data/db
+  database-ui:
+    image: mongo-express:latest
+    container_name: database-ui
+    restart: on-failure
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=${DATABASE_HOST}
+      - ME_CONFIG_MONGODB_PORT=${DATABASE_PORT}
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=${DATABASE_ROOT_USERNAME}
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=${DATABASE_ROOT_PASSWORD}
+    links:
+      - database
+    depends_on:
+      database:
+        condition: service_healthy
+    volumes:
+      - ./data:/data/db-ui
+volumes:
+  data:

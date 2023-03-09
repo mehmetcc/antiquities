@@ -3,7 +3,7 @@ package org.mehmetcc
 import zio.config._
 import zio.config.magnolia._
 import zio.config.typesafe._
-import zio.{IO, ULayer, ZIO, ZLayer}
+import zio.{IO, Task, ULayer, ZIO, ZLayer}
 
 final case class ApplicationConfiguration(
   httpConfiguration: HttpConfiguration,
