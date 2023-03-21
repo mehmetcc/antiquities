@@ -6,12 +6,21 @@ import zio.{Task, ZIO, ZLayer}
 
 import java.time.Instant
 
-case class Acceleration(x: Double, y: Double, z: Double, receivedAt: Instant = Instant.now) {
+case class Acceleration(
+  x: Double,
+  y: Double,
+  z: Double,
+  latitude: Double,
+  longitude: Double,
+  receivedAt: Instant = Instant.now
+) {
   lazy val document: Document = Document(
     "_id"         -> BsonValue.objectId(ObjectId.gen),
     "x"           -> BsonValue.double(x),
     "y"           -> BsonValue.double(y),
     "z"           -> BsonValue.double(z),
+    "latitude"    -> BsonValue.double(latitude),
+    "longitude"   -> BsonValue.double(longitude),
     "received_at" -> BsonValue.instant(receivedAt)
   )
 }

@@ -24,7 +24,15 @@ object Endpoints {
       .out(jsonBody[PostAccelerationResponse])
       .serverLogic { request =>
         Database
-          .insertOne(Acceleration(x = request.x, y = request.y, z = request.z))
+          .insertOne(
+            Acceleration(
+              x = request.x,
+              y = request.y,
+              z = request.z,
+              latitude = request.latitude,
+              longitude = request.longitude
+            )
+          )
           .map(PostAccelerationResponse(_))
           .either
           .map(either =>
@@ -46,7 +54,15 @@ object Endpoints {
       .serverLogic { request =>
         Database
           .insertMany(
-            request.accelerations.map(acc => Acceleration(acc.x, acc.y, acc.z))
+            request.accelerations.map(request =>
+              Acceleration(
+                x = request.x,
+                y = request.y,
+                z = request.z,
+                latitude = request.latitude,
+                longitude = request.longitude
+              )
+            )
           )
           .map(PostAccelerationResponse(_))
           .either

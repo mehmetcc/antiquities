@@ -2,7 +2,7 @@ package org.mehmetcc
 
 import zio.json.{DeriveJsonDecoder, DeriveJsonEncoder, JsonDecoder, JsonEncoder}
 
-case class PostAccelerationOnceRequest(x: Double, y: Double, z: Double)
+case class PostAccelerationOnceRequest(x: Double, y: Double, z: Double, longitude: Double, latitude: Double)
 
 object PostAccelerationOnceRequest {
   implicit val postAccelerationOnceRequestEncoder: JsonEncoder[PostAccelerationOnceRequest] =
